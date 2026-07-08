@@ -2,28 +2,80 @@
 
 ![CityPulse product demo](docs/assets/citypulse-15s-product-demo.gif)
 
-CityPulse is a FastAPI SRE take-home project for managing city population data. It includes REST API endpoints, Elasticsearch persistence, a server-rendered admin dashboard, Docker Compose for local use, and a Helm chart for Kubernetes deployment.
+CityPulse is a production-minded SRE take-home project for managing city population data with a FastAPI service, Elasticsearch persistence, Docker Compose, Kubernetes Helm packaging, and Terraform bonus deployments.
 
-## Visuals
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-8.15-orange)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED)
+![Helm](https://img.shields.io/badge/Helm-chart-0F1689)
+![Terraform](https://img.shields.io/badge/Terraform-bonus-7B42BC)
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen)
 
-### Root Architecture
+## What Reviewers Should Notice
+
+- The API has health, readiness, upsert, and query endpoints with automated tests.
+- Readiness checks the Elasticsearch backing store instead of returning a static success.
+- The same Helm chart deploys the app and demo Elasticsearch on Kubernetes.
+- Docker Compose gives a fast local review path with both app and database.
+- Bonus Terraform modules cover local Minikube and a low-cost public AWS K3s demo.
+- The reflection documents production scaling, observability, security, and HA considerations.
+
+## Quick Start
+
+Run locally with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+Open the dashboard:
+
+```text
+http://localhost:8000
+```
+
+Stop the stack:
+
+```bash
+docker compose down
+```
+
+## API
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/healthz` | Liveness check that returns `OK` |
+| `GET` | `/readyz` | Readiness check backed by Elasticsearch health |
+| `PUT` | `/cities/{city}` | Insert or update a city population |
+| `GET` | `/cities/{city}` | Retrieve a city population |
+
+Example requests:
+
+```bash
+curl http://localhost:8000/healthz
+```
+
+```bash
+curl -X PUT http://localhost:8000/cities/Dubai \
+  -H 'Content-Type: application/json' \
+  -d '{"population":3331420}'
+```
+
+```bash
+curl http://localhost:8000/cities/Dubai
+```
+
+## Architecture
 
 ![CityPulse root architecture](docs/assets/citypulse-root-architecture.png)
 
-### API Surface
+CityPulse keeps the application layer small and observable: FastAPI handles the REST and dashboard surface, Elasticsearch stores normalized city records, Docker Compose supports local review, and Helm packages the app/database for Kubernetes.
 
-![CityPulse API surface](docs/assets/citypulse-api-surface.png)
+Additional visuals:
 
-## Features
-
-- Health endpoint: `GET /healthz`
-- Readiness endpoint: `GET /readyz`
-- Upsert city population: `PUT /cities/{city}`
-- Query city population: `GET /cities/{city}`
-- Elasticsearch-backed storage
-- Server-rendered admin dashboard at `/`
-- Dashboard auto-seeds demo city records when Elasticsearch is reachable
-- Docker Compose and Kubernetes deployment assets
+- [API surface](docs/assets/citypulse-api-surface.png)
+- [API request lifecycle](docs/assets/citypulse-api-lifecycle.png)
 
 ## Local Python Setup
 
@@ -45,48 +97,6 @@ Run the app against an existing Elasticsearch instance:
 export ELASTICSEARCH_URL=http://localhost:9200
 export ELASTICSEARCH_INDEX=citypulse-cities
 uvicorn app.main:app --reload
-```
-
-Open the dashboard:
-
-```text
-http://localhost:8000
-```
-
-## API Examples
-
-```bash
-curl http://localhost:8000/healthz
-```
-
-```bash
-curl -X PUT http://localhost:8000/cities/Dubai \
-  -H 'Content-Type: application/json' \
-  -d '{"population":3331420}'
-```
-
-```bash
-curl http://localhost:8000/cities/Dubai
-```
-
-## Docker Compose
-
-Start the application and Elasticsearch:
-
-```bash
-docker compose up --build
-```
-
-Then open:
-
-```text
-http://localhost:8000
-```
-
-Stop and remove containers:
-
-```bash
-docker compose down
 ```
 
 ## Kubernetes Deployment With Helm
@@ -125,16 +135,9 @@ Open:
 http://localhost:8080
 ```
 
-Validate the Helm chart:
+## Bonus Terraform Deployments
 
-```bash
-helm lint ./helm/citypulse
-helm template citypulse ./helm/citypulse
-```
-
-## Bonus Deployments
-
-### Automated Minikube With Terraform
+### Minikube
 
 ![CityPulse Minikube Terraform architecture](docs/assets/bonus-minikube-architecture.png)
 
@@ -144,15 +147,10 @@ The `bonus/minikube-terraform` module creates a Minikube cluster and installs Ci
 cd bonus/minikube-terraform
 terraform init
 terraform apply -auto-approve
-```
-
-Then:
-
-```bash
 kubectl port-forward -n citypulse svc/citypulse 8080:80
 ```
 
-### Public AWS K3s Demo With Terraform
+### AWS K3s
 
 ![CityPulse AWS K3s Terraform architecture](docs/assets/bonus-aws-k3s-architecture.png)
 
@@ -170,10 +168,30 @@ Default public URL:
 http://citypulse.clawstack.cloud
 ```
 
-Clean up the AWS demo after review:
+Clean up after review:
 
 ```bash
 terraform destroy -auto-approve
+```
+
+## Validation
+
+```bash
+pytest
+helm lint ./helm/citypulse
+helm template citypulse ./helm/citypulse
+terraform -chdir=bonus/minikube-terraform fmt -check -recursive
+terraform -chdir=bonus/aws-k3s-terraform fmt -check -recursive
+```
+
+## Repository Layout
+
+```text
+app/      FastAPI application, Elasticsearch store, and dashboard UI
+helm/     Kubernetes Helm chart for CityPulse and demo Elasticsearch
+bonus/    Terraform modules for Minikube and AWS K3s deployments
+docs/     Architecture visuals and implementation reflection
+tests/    API and dashboard tests
 ```
 
 ## Configuration

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CityPulse Console</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}" />
+  </head>
+  <body data-theme="light">
+    <main class="terminal-shell">
+      <header class="terminal-topbar" id="overview">
+        <div class="window-controls" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="terminal-title">
+          <span>CityPulse Console</span>
+        </div>
+        <nav class="terminal-nav" aria-label="Console navigation">
+          <a href="#actions">commands</a>
+          <a href="#results">records</a>
+          <a href="/docs">openapi</a>
+        </nav>
+        <button class="theme-toggle" type="button" aria-label="Switch to dark theme" aria-pressed="true">
+          <span class="theme-toggle-track" aria-hidden="true">
+            <span class="theme-toggle-thumb"></span>
+          </span>
+          <span class="theme-toggle-text">light</span>
+        </button>
+      </header>
+
+      <section class="hero-console">
+        <div>
+          <h1>CityPulse Console</h1>
+          <p class="hero-copy">
+            FastAPI + Elasticsearch operator view for city population records.
+            Monitor readiness, run API commands, and inspect indexed data from one console.
+          </p>
+        </div>
+
+        <div class="command-card" aria-label="Runtime command output">
+          <div class="command-line"><span>$</span> curl -s /readyz</div>
+          <pre>{
+  "api": "OK",
+  "database": "{{ 'ready' if db_healthy else 'waiting' }}",
+  "visible_records": {{ rows|length }},
+  "index": "citypulse-cities"
+}</pre>
+        </div>
+      </section>
+
+      {% if message %}
+      <section class="notice success" role="status">
+        <code>stdout</code>
+        <span>{{ message }}</span>
+      </section>
+      {% endif %}
+      {% if error %}
+      <section class="notice error" role="alert">
+        <code>stderr</code>
+        <span>{{ error }}</span>
+      </section>
+      {% endif %}
+
+      <section class="telemetry-grid" aria-label="Runtime status">
+        <article class="telemetry-card">
+          <span class="label">API Health</span>
+          <strong class="ok">OK</strong>
+          <code>GET /healthz</code>
+        </article>
+
+        <article class="telemetry-card">
+          <span class="label">Elasticsearch</span>
+          <strong class="{{ 'ok' if db_healthy else 'warn' }}">{{ 'READY' if db_healthy else 'WAITING' }}</strong>
+          <code>GET /readyz</code>
+        </article>
+
+        <article class="telemetry-card">
+          <span class="label">Loaded Records</span>
+          <strong class="ok">{{ rows|length }}</strong>
+          <code>GET /cities/{city}</code>
+        </article>
+
+        <article class="telemetry-card">
+          <span class="label">Latest Operation</span>
+          <strong class="ok">{{ 'UPDATED' if message else 'IDLE' }}</strong>
+          <code>{{ result.city if result else 'awaiting command' }}</code>
+        </article>
+      </section>
+
+      <section class="command-grid" id="actions" aria-label="City commands">
+        <article class="terminal-panel">
+          <div class="panel-bar">
+            <span class="prompt-mini">$</span>
+            <h2>upsert city</h2>
+            <code>PUT /cities/{city}</code>
+          </div>
+
+          <form action="/dashboard/upsert" method="post" class="command-form">
+            <label for="upsert-city">city</label>
+            <input id="upsert-city" name="city" type="text" placeholder="Dubai" required />
+
+            <label for="population">population</label>
+            <input id="population" name="population" type="number" min="0" placeholder="3655000" required />
+
+            <button type="submit">run upsert</button>
+          </form>
+        </article>
+
+        <article class="terminal-panel">
+          <div class="panel-bar">
+            <span class="prompt-mini">$</span>
+            <h2>query city</h2>
+            <code>GET /cities/{city}</code>
+          </div>
+
+          <form action="/dashboard/query" method="post" class="command-form query-form">
+            <label for="query-city">city</label>
+            <input id="query-city" name="city" type="text" placeholder="Bucharest" required />
+
+            <button type="submit">run query</button>
+          </form>
+        </article>
+      </section>
+
+      <section class="records-panel" id="results">
+        <div class="records-header">
+          <div>
+            <p class="prompt"><span>citypulse</span>:<strong>records</strong>$ tail -n 50 index</p>
+            <h2>Indexed City Records</h2>
+          </div>
+          <span class="record-count">{{ rows|length }} rows</span>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>status</th>
+                <th>city</th>
+                <th>population</th>
+                <th>updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+              <tr>
+                <td><span class="status-chip">200</span></td>
+                <td><strong>{{ row.city }}</strong></td>
+                <td>{{ "{:,}".format(row.population) }}</td>
+                <td><time>{{ row.updated_at or 'n/a' }}</time></td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="empty">
+                  <strong>No records available.</strong>
+                  <span>Elasticsearch is reachable but the index has not returned data yet.</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <script>
+      (() => {
+        const storageKey = "citypulse-theme-v2";
+        const button = document.querySelector(".theme-toggle");
+        const label = document.querySelector(".theme-toggle-text");
+
+        const setTheme = (theme) => {
+          document.body.dataset.theme = theme;
+          button?.setAttribute("aria-pressed", String(theme === "light"));
+          button?.setAttribute(
+            "aria-label",
+            theme === "light" ? "Switch to dark theme" : "Switch to light theme",
+          );
+          if (label) {
+            label.textContent = theme;
+          }
+        };
+
+        setTheme(localStorage.getItem(storageKey) || "light");
+
+        button?.addEventListener("click", () => {
+          const nextTheme = document.body.dataset.theme === "light" ? "dark" : "light";
+          localStorage.setItem(storageKey, nextTheme);
+          setTheme(nextTheme);
+        });
+      })();
+    </script>
+  </body>
+</html>

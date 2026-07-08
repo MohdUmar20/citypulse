@@ -1,0 +1,8 @@
+CityPulse is installed.
+
+Port-forward the service:
+  kubectl port-forward svc/{{ include "citypulse.fullname" . }} 8000:{{ .Values.service.port }}
+
+Open:
+  http://localhost:8000
+

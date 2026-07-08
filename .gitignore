@@ -1,0 +1,24 @@
+.env
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+*.pyo
+.DS_Store
+
+# Local-only evidence and generated deliverables
+media/
+dist/
+dist/SRE_Assignment_v3_Validation_Report.docx
+*.zip
+
+# Terraform local runtime state
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfstate*
+*.tfvars
+!terraform.tfvars.example
+*.pem
+study-notes/

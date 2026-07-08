@@ -1,0 +1,10 @@
+aws_profile      = "aws-personal"
+aws_region       = "us-east-1"
+availability_zone = "us-east-1a"
+name_prefix      = "citypulse"
+instance_type    = "t4g.small"
+root_volume_size = 20
+hosted_zone_name = "clawstack.cloud."
+subdomain        = "citypulse"
+image_repository = "umar20/citypulse"
+image_tag        = "1.1.0"

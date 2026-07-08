@@ -1,0 +1,7 @@
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfstate*
+*.tfvars
+!terraform.tfvars.example
+citypulse-k3s-key.pem
